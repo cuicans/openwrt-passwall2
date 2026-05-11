@@ -1,4 +1,4 @@
-name: ImmortalWrt PassWall2 Stable Builder
+name: ImmortalWrt PassWall2 Stable Build (Final)
 
 on:
   workflow_dispatch:
@@ -21,29 +21,37 @@ jobs:
           gettext git libncurses5-dev libssl-dev python3 rsync unzip zlib1g-dev file wget
 
       # =========================
-      # 2. Clone ImmortalWrt（固定路径）
+      # 2. 关闭 Git 认证干扰（关键修复点）
+      # =========================
+      - name: Fix git environment
+        run: |
+          git config --global credential.helper ""
+          git config --global --unset http.extraheader || true
+          git config --global protocol.version 2
+
+      # =========================
+      # 3. 克隆 ImmortalWrt
       # =========================
       - name: Clone ImmortalWrt
         run: |
           git clone --depth=1 https://github.com/immortalwrt/immortalwrt $REPO
 
       # =========================
-      # 3. 创建 package 目录（关键防炸）
+      # 4. 创建 package 目录
       # =========================
-      - name: Prepare directories
+      - name: Prepare package dir
         run: |
           mkdir -p $REPO/package
 
       # =========================
-      # 4. 添加 PassWall2（正确方式）
+      # 5. 添加 PassWall2（稳定写法）
       # =========================
       - name: Add PassWall2
         run: |
-          cd $REPO/package
-          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2
+          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2 $REPO/package/passwall2
 
       # =========================
-      # 5. 更新 feeds
+      # 6. feeds 更新
       # =========================
       - name: Update feeds
         run: |
@@ -52,7 +60,7 @@ jobs:
           ./scripts/feeds install -a
 
       # =========================
-      # 6. 生成默认配置
+      # 7. 默认配置
       # =========================
       - name: Generate config
         run: |
@@ -60,7 +68,7 @@ jobs:
           make defconfig
 
       # =========================
-      # 7. 编译（稳定模式）
+      # 8. 编译（稳定模式）
       # =========================
       - name: Build firmware
         run: |
@@ -68,7 +76,7 @@ jobs:
           make -j1 V=s
 
       # =========================
-      # 8. 上传固件
+      # 9. 上传固件
       # =========================
       - name: Upload firmware
         uses: actions/upload-artifact@v4
